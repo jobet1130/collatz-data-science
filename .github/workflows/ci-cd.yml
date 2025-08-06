@@ -33,7 +33,7 @@ jobs:
           POSTGRES_DB: collatz_db_test
           POSTGRES_USER: postgresql
           POSTGRES_PASSWORD: test_password
-        options: >
+        options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -216,7 +216,7 @@ jobs:
           POSTGRES_DB: collatz_db_test
           POSTGRES_USER: postgresql
           POSTGRES_PASSWORD: test_password
-        options: >
+        options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
