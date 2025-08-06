@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Main application service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: collatz-app
+    ports:
+      - "${APP_PORT}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks
+      - ./reports:/app/reports
+      - ./src:/app/src
+      - ./dashboard:/app/dashboard
+    environment:
+      - PYTHONPATH=${PYTHONPATH}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DB_URL=${DB_URL}
+
+      - SECRET_KEY=${SECRET_KEY}
+    env_file:
+      - .env
+    networks:
+      - collatz-network
+    restart: unless-stopped
+    depends_on:
+      - database
+
+  # Jupyter Lab service for interactive development
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: collatz-jupyter
+    command: jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT} --no-browser --allow-root --NotebookApp.token='${JUPYTER_TOKEN}' --NotebookApp.password='${JUPYTER_PASSWORD}'
+    ports:
+      - "${JUPYTER_PORT}:8888"
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks
+      - ./reports:/app/reports
+      - ./src:/app/src
+    environment:
+      - PYTHONPATH=${PYTHONPATH}
+      - JUPYTER_ENABLE_LAB=yes
+      - DB_URL=${DB_URL}
+
+    env_file:
+      - .env
+    networks:
+      - collatz-network
+    restart: unless-stopped
+    depends_on:
+      - database
+
+  # PostgreSQL database for storing results
+  database:
+    image: postgres:15-alpine
+    container_name: collatz-db
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - collatz-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  collatz-network:
+    driver: bridge
