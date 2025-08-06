@@ -158,7 +158,8 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
+          type=sha,prefix={{branch}}-,enable={{is_default_branch}}
+          type=sha
     
     - name: Extract metadata for Docker Hub
       id: meta-dockerhub
@@ -170,7 +171,8 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
+          type=sha,prefix={{branch}}-,enable={{is_default_branch}}
+          type=sha
           type=raw,value=latest,enable={{is_default_branch}}
     
     - name: Build and push Docker image to Docker Hub
