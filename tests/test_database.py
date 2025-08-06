@@ -1,8 +1,9 @@
 """Database connection and basic functionality tests."""
 
 import os
-import pytest
+
 import psycopg2
+import pytest
 from psycopg2.extras import RealDictCursor
 
 

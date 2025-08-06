@@ -1,6 +1,7 @@
 """Performance benchmarks for Collatz sequence calculations."""
 
 import pytest
+
 from .test_collatz import (
     collatz_sequence_length,
     collatz_sequence_max,
