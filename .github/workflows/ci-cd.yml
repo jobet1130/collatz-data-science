@@ -12,7 +12,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   DOCKERHUB_REGISTRY: docker.io
-  DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/collatz-data-science
+  DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/collatz-data-science
 
 jobs:
   test:

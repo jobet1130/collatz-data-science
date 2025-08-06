@@ -6,11 +6,11 @@ This document explains how to configure Docker Hub integration for automatic ima
 
 To enable Docker Hub publishing, you need to add the following secrets to your GitHub repository:
 
-### 1. DOCKERHUB_USERNAME
+### 1. DOCKER_USERNAME
 - **Description**: Your Docker Hub username
 - **Value**: Your Docker Hub account username (e.g., `yourusername`)
 
-### 2. DOCKERHUB_TOKEN
+### 2. DOCKER_PASSWORD
 - **Description**: Docker Hub access token for authentication
 - **How to create**:
   1. Log in to [Docker Hub](https://hub.docker.com/)
@@ -26,8 +26,8 @@ To enable Docker Hub publishing, you need to add the following secrets to your G
 2. Navigate to Settings → Secrets and variables → Actions
 3. Click "New repository secret"
 4. Add each secret:
-   - Name: `DOCKERHUB_USERNAME`, Value: your Docker Hub username
-   - Name: `DOCKERHUB_TOKEN`, Value: your Docker Hub access token
+   - Name: `DOCKER_USERNAME`, Value: your Docker Hub username
+   - Name: `DOCKER_PASSWORD`, Value: your Docker Hub access token
 
 ## Docker Hub Repository
 
