@@ -4,7 +4,7 @@ import pytest
 from .test_collatz import (
     collatz_sequence_length,
     collatz_sequence_max,
-    generate_collatz_sequence
+    generate_collatz_sequence,
 )
 
 
@@ -101,9 +101,10 @@ def test_sequence_generation_scaling(benchmark, n):
 @pytest.mark.benchmark
 def test_batch_sequence_length_performance(benchmark):
     """Benchmark calculating sequence lengths for multiple numbers."""
+
     def batch_calculation():
         return [collatz_sequence_length(i) for i in range(1, 101)]
-    
+
     result = benchmark(batch_calculation)
     assert len(result) == 100
     assert all(length >= 0 for length in result)
@@ -112,9 +113,10 @@ def test_batch_sequence_length_performance(benchmark):
 @pytest.mark.benchmark
 def test_batch_sequence_max_performance(benchmark):
     """Benchmark calculating sequence maxes for multiple numbers."""
+
     def batch_calculation():
         return [collatz_sequence_max(i) for i in range(1, 101)]
-    
+
     result = benchmark(batch_calculation)
     assert len(result) == 100
     assert all(max_val >= i for i, max_val in enumerate(result, 1))
