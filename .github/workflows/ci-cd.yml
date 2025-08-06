@@ -13,6 +13,13 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   DOCKERHUB_REGISTRY: docker.io
   DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/collatz-data-science
+  # Database configuration
+  POSTGRES_DB: collatz_db_test
+  POSTGRES_USER: postgresql
+  POSTGRES_PASSWORD: test_password
+  DB_HOST: localhost
+  DB_PORT: 5432
+  DB_URL: postgresql://postgresql:test_password@localhost:5432/collatz_db_test
 
 jobs:
   test:
@@ -23,10 +30,10 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: collatz_db_test
-          POSTGRES_USER: postgresql
-          POSTGRES_PASSWORD: test_password
-        options: >-
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -52,12 +59,12 @@ jobs:
     
     - name: Set up test database
       env:
-        PGPASSWORD: test_password
+        PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/01_create_tables.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/02_create_indexes.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/03_create_views.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/04_create_functions.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/01_create_tables.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/02_create_indexes.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/03_create_views.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/04_create_functions.sql
     
     - name: Lint with flake8
       run: |
@@ -75,12 +82,9 @@ jobs:
     
     - name: Run tests with pytest
       env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: collatz_db_test
-        DB_USER: postgresql
-        DB_PASSWORD: test_password
-        DB_URL: postgresql://postgresql:test_password@localhost:5432/collatz_db_test
+        DB_NAME: ${{ env.POSTGRES_DB }}
+        DB_USER: ${{ env.POSTGRES_USER }}
+        DB_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
         pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
     
@@ -203,15 +207,16 @@ jobs:
     name: Test Notebooks
     runs-on: ubuntu-latest
     needs: test
+    if: github.ref != 'refs/heads/main'
     
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: collatz_db_test
-          POSTGRES_USER: postgresql
-          POSTGRES_PASSWORD: test_password
-        options: >-
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -236,119 +241,68 @@ jobs:
     
     - name: Set up test database
       env:
-        PGPASSWORD: test_password
+        PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/01_create_tables.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/02_create_indexes.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/03_create_views.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/04_create_functions.sql
-        psql -h localhost -U postgresql -d collatz_db_test -f sql/05_insert_sample_data.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/01_create_tables.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/02_create_indexes.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/03_create_views.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/04_create_functions.sql
+        psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/05_insert_sample_data.sql
     
     - name: Test notebooks
       env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: collatz_db_test
-        DB_USER: postgresql
-        DB_PASSWORD: test_password
-        DB_URL: postgresql://postgresql:test_password@localhost:5432/collatz_db_test
+        DB_NAME: ${{ env.POSTGRES_DB }}
+        DB_USER: ${{ env.POSTGRES_USER }}
+        DB_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
         find notebooks/ -name "*.ipynb" -exec jupyter nbconvert --to notebook --execute {} \;
 
-  deploy-develop:
-    name: Deploy to Development
+  deploy:
+    name: Deploy to ${{ matrix.environment.name }}
     runs-on: ubuntu-latest
-    needs: [build, notebook-test]
-    if: github.ref == 'refs/heads/develop'
-    environment: development
+    needs: [build]
+    if: |
+      (github.ref == 'refs/heads/develop' && matrix.environment.branch == 'develop') ||
+      (github.ref == 'refs/heads/qa' && matrix.environment.branch == 'qa') ||
+      (github.ref == 'refs/heads/uat' && matrix.environment.branch == 'uat') ||
+      (github.ref == 'refs/heads/releaseTest' && matrix.environment.branch == 'releaseTest') ||
+      ((github.ref == 'refs/heads/release' || github.event_name == 'release') && matrix.environment.branch == 'release')
+    environment: ${{ matrix.environment.env }}
+    
+    strategy:
+      matrix:
+        environment:
+          - name: Development
+            branch: develop
+            env: development
+          - name: QA
+            branch: qa
+            env: qa
+          - name: UAT
+            branch: uat
+            env: uat
+          - name: Release Test
+            branch: releaseTest
+            env: release-test
+          - name: Production
+            branch: release
+            env: production
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Deploy to development
+    - name: Deploy to ${{ matrix.environment.name }}
       run: |
-        echo "Deploying to development environment..."
-        # Add your development deployment commands here
-        # Example: kubectl apply -f k8s/development/
-        # Example: docker-compose -f docker-compose.dev.yml up -d
-
-  deploy-qa:
-    name: Deploy to QA
-    runs-on: ubuntu-latest
-    needs: [build, notebook-test]
-    if: github.ref == 'refs/heads/qa'
-    environment: qa
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to QA
-      run: |
-        echo "Deploying to QA environment..."
-        # Add your QA deployment commands here
-        # Example: kubectl apply -f k8s/qa/
-        # Example: docker-compose -f docker-compose.qa.yml up -d
-
-  deploy-uat:
-    name: Deploy to UAT
-    runs-on: ubuntu-latest
-    needs: [build, notebook-test]
-    if: github.ref == 'refs/heads/uat'
-    environment: uat
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to UAT
-      run: |
-        echo "Deploying to UAT environment..."
-        # Add your UAT deployment commands here
-        # Example: kubectl apply -f k8s/uat/
-        # Example: docker-compose -f docker-compose.uat.yml up -d
-
-  deploy-release-test:
-    name: Deploy to Release Test
-    runs-on: ubuntu-latest
-    needs: [build, notebook-test]
-    if: github.ref == 'refs/heads/releaseTest'
-    environment: release-test
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to Release Test
-      run: |
-        echo "Deploying to Release Test environment..."
-        # Add your release test deployment commands here
-        # Example: kubectl apply -f k8s/release-test/
-        # Example: docker-compose -f docker-compose.release-test.yml up -d
-
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build, notebook-test]
-    if: github.ref == 'refs/heads/release' || github.event_name == 'release'
-    environment: production
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to production
-      run: |
-        echo "Deploying to production environment..."
-        # Add your production deployment commands here
-        # Example: kubectl apply -f k8s/production/
-        # Example: docker-compose -f docker-compose.prod.yml up -d
+        echo "Deploying to ${{ matrix.environment.name }} environment..."
+        # Add your ${{ matrix.environment.name }} deployment commands here
+        # Example: kubectl apply -f k8s/${{ matrix.environment.env }}/
+        # Example: docker-compose -f docker-compose.${{ matrix.environment.env }}.yml up -d
 
   cleanup:
     name: Cleanup
     runs-on: ubuntu-latest
-    needs: [deploy-develop, deploy-qa, deploy-uat, deploy-release-test, deploy-production]
+    needs: [deploy]
     if: always()
     
     steps:
