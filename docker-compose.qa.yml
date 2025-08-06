@@ -1,0 +1,63 @@
+version: '3.8'
+
+# QA Environment Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.qa.yml up
+
+services:
+  app:
+    container_name: collatz-app-qa
+    ports:
+      - "8081:8080"  # Different port for QA
+    env_file:
+      - .env.qa
+    environment:
+      - ENVIRONMENT=qa
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    labels:
+      - "environment=qa"
+      - "version=qa-${GITHUB_SHA:-latest}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  jupyter:
+    container_name: collatz-jupyter-qa
+    ports:
+      - "8889:8888"  # Different port for QA
+    env_file:
+      - .env.qa
+    environment:
+      - ENVIRONMENT=qa
+      - JUPYTER_ENABLE_LAB=yes
+    labels:
+      - "environment=qa"
+
+  database:
+    container_name: collatz-db-qa
+    ports:
+      - "5433:5432"  # Different port for QA
+    environment:
+      - POSTGRES_DB=collatz_db_qa
+      - POSTGRES_USER=postgresql
+      - POSTGRES_PASSWORD=qa_database_password_here
+    volumes:
+      - qa_postgres_data:/var/lib/postgresql/data
+    labels:
+      - "environment=qa"
+
+volumes:
+  qa_postgres_data:
+    driver: local
+    labels:
+      - "environment=qa"
+
+networks:
+  default:
+    name: collatz-qa-network
+    labels:
+      - "environment=qa"
