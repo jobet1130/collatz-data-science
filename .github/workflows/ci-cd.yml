@@ -257,52 +257,90 @@ jobs:
       run: |
         find notebooks/ -name "*.ipynb" -exec jupyter nbconvert --to notebook --execute {} \;
 
-  deploy:
-    name: Deploy to ${{ matrix.environment.name }}
+  deploy-develop:
+    name: Deploy to Development
     runs-on: ubuntu-latest
     needs: [build]
-    if: |
-      (github.ref == 'refs/heads/develop' && matrix.environment.branch == 'develop') ||
-      (github.ref == 'refs/heads/qa' && matrix.environment.branch == 'qa') ||
-      (github.ref == 'refs/heads/uat' && matrix.environment.branch == 'uat') ||
-      (github.ref == 'refs/heads/releaseTest' && matrix.environment.branch == 'releaseTest') ||
-      ((github.ref == 'refs/heads/release' || github.event_name == 'release') && matrix.environment.branch == 'release')
-    environment: ${{ matrix.environment.env }}
-    
-    strategy:
-      matrix:
-        environment:
-          - name: Development
-            branch: develop
-            env: development
-          - name: QA
-            branch: qa
-            env: qa
-          - name: UAT
-            branch: uat
-            env: uat
-          - name: Release Test
-            branch: releaseTest
-            env: release-test
-          - name: Production
-            branch: release
-            env: production
+    if: github.ref == 'refs/heads/develop'
+    environment: development
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Deploy to ${{ matrix.environment.name }}
+    - name: Deploy to Development
       run: |
-        echo "Deploying to ${{ matrix.environment.name }} environment..."
-        # Add your ${{ matrix.environment.name }} deployment commands here
-        # Example: kubectl apply -f k8s/${{ matrix.environment.env }}/
-        # Example: docker-compose -f docker-compose.${{ matrix.environment.env }}.yml up -d
+        echo "Deploying to Development environment..."
+        # Add your Development deployment commands here
+
+  deploy-qa:
+    name: Deploy to QA
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/qa'
+    environment: qa
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to QA
+      run: |
+        echo "Deploying to QA environment..."
+        # Add your QA deployment commands here
+
+  deploy-uat:
+    name: Deploy to UAT
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/uat'
+    environment: uat
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to UAT
+      run: |
+        echo "Deploying to UAT environment..."
+        # Add your UAT deployment commands here
+
+  deploy-release-test:
+    name: Deploy to Release Test
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/releaseTest'
+    environment: release-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Release Test
+      run: |
+        echo "Deploying to Release Test environment..."
+        # Add your Release Test deployment commands here
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/release' || github.event_name == 'release'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Production
+      run: |
+        echo "Deploying to Production environment..."
+        # Add your Production deployment commands here
 
   cleanup:
     name: Cleanup
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: [deploy-develop, deploy-qa, deploy-uat, deploy-release-test, deploy-production]
     if: always()
     
     steps:
