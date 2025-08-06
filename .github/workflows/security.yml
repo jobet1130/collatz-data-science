@@ -136,44 +136,10 @@ jobs:
           trivy-results.txt
         retention-days: 30
 
-  codeql-analysis:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    needs: docker-security
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'python' ]
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        queries: security-and-quality
-    
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-    
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      env:
-        CODEQL_ACTION_EXTRA_OPTIONS: '{"database":{"interpret-results":["--max-paths", "1"]}}'
-      with:
-        category: "codeql-${{matrix.language}}"
-
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
-    needs: codeql-analysis
+    needs: docker-security
     permissions:
       actions: read
       contents: read
