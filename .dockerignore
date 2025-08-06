@@ -3,8 +3,8 @@
 .gitignore
 
 # Documentation
-README.md
-*.md
+# README.md (needed for Docker build)
+# *.md
 docs/
 
 # IDE and editor files
