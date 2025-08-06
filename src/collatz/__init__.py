@@ -1,7 +1,7 @@
 """Collatz sequence analysis package"""
 
-from .sequence import collatz_length, collatz_sequence
 from .database import CollatzDatabase, get_database_connection
+from .sequence import collatz_length, collatz_sequence
 
 __all__ = [
     "collatz_sequence",

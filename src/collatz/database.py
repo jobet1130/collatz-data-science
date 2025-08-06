@@ -1,11 +1,12 @@
 """Database utilities for Collatz sequence data storage."""
 
-import os
 import logging
-from typing import Optional, List, Dict, Any
+import os
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 import psycopg2
 from psycopg2.extras import RealDictCursor, execute_batch
-import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
