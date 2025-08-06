@@ -45,6 +45,33 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Check if tests and source files exist
+      run: |
+        TESTS_EXIST=false
+        SRC_EXIST=false
+        
+        if [ -d "tests" ] && [ -n "$(find tests -name '*.py' -type f)" ]; then
+          TESTS_EXIST=true
+          echo "Test files found in tests directory."
+        else
+          echo "No test files found in tests directory."
+        fi
+        
+        if [ -d "src" ] && [ -n "$(find src -name '*.py' -type f)" ]; then
+          SRC_EXIST=true
+          echo "Source files found in src directory."
+        else
+          echo "No source files found in src directory."
+        fi
+        
+        if [ "$TESTS_EXIST" = false ] && [ "$SRC_EXIST" = false ]; then
+          echo "No tests or source files found. Skipping test job."
+          exit 0
+        fi
+        
+        echo "TESTS_EXIST=$TESTS_EXIST" >> $GITHUB_ENV
+        echo "SRC_EXIST=$SRC_EXIST" >> $GITHUB_ENV
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -67,28 +94,53 @@ jobs:
         psql -h ${{ env.DB_HOST }} -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} -f sql/04_create_functions.sql
     
     - name: Lint with flake8
+      if: env.TESTS_EXIST == 'true' || env.SRC_EXIST == 'true'
       run: |
-        flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        DIRS=""
+        if [ "$SRC_EXIST" = "true" ]; then DIRS="$DIRS src/"; fi
+        if [ "$TESTS_EXIST" = "true" ]; then DIRS="$DIRS tests/"; fi
+        if [ -n "$DIRS" ]; then
+          flake8 $DIRS --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 $DIRS --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        fi
     
     - name: Check code formatting with black
-      run: black --check src/ tests/
+      if: env.TESTS_EXIST == 'true' || env.SRC_EXIST == 'true'
+      run: |
+        DIRS=""
+        if [ "$SRC_EXIST" = "true" ]; then DIRS="$DIRS src/"; fi
+        if [ "$TESTS_EXIST" = "true" ]; then DIRS="$DIRS tests/"; fi
+        if [ -n "$DIRS" ]; then
+          black --check $DIRS
+        fi
     
     - name: Check import sorting with isort
-      run: isort --check-only src/ tests/
+      if: env.TESTS_EXIST == 'true' || env.SRC_EXIST == 'true'
+      run: |
+        DIRS=""
+        if [ "$SRC_EXIST" = "true" ]; then DIRS="$DIRS src/"; fi
+        if [ "$TESTS_EXIST" = "true" ]; then DIRS="$DIRS tests/"; fi
+        if [ -n "$DIRS" ]; then
+          isort --check-only $DIRS
+        fi
     
     - name: Type checking with mypy
+      if: env.SRC_EXIST == 'true'
       run: mypy src/ --ignore-missing-imports
     
     - name: Run tests with pytest
+      if: env.TESTS_EXIST == 'true'
       env:
         DB_NAME: ${{ env.POSTGRES_DB }}
         DB_USER: ${{ env.POSTGRES_USER }}
         DB_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+        COV_ARG=""
+        if [ "$SRC_EXIST" = "true" ]; then COV_ARG="--cov=src"; fi
+        pytest tests/ -v $COV_ARG --cov-report=xml --cov-report=html
     
     - name: Upload coverage to Codecov
+      if: env.TESTS_EXIST == 'true' && env.SRC_EXIST == 'true'
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
@@ -102,6 +154,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Check if notebooks exist
+      run: |
+        if [ ! -d "notebooks" ] || [ -z "$(find notebooks -name '*.ipynb' -type f)" ]; then
+          echo "No notebook files found in notebooks directory. Skipping notebook tests."
+          exit 0
+        fi
+        echo "Notebook files found. Proceeding with notebook tests."
     
     - name: Set up Python
       uses: actions/setup-python@v4
