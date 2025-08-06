@@ -1,0 +1,2 @@
+# This file ensures the notebooks directory is tracked by git
+# and can be copied by Docker even when empty
