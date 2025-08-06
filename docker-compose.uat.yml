@@ -1,0 +1,92 @@
+version: '3.8'
+
+# UAT Environment Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.uat.yml up
+
+services:
+  app:
+    container_name: collatz-app-uat
+    ports:
+      - "8082:8080"  # Different port for UAT
+    env_file:
+      - .env.uat
+    environment:
+      - ENVIRONMENT=uat
+      - DEBUG=false
+      - LOG_LEVEL=WARN
+    labels:
+      - "environment=uat"
+      - "version=uat-${GITHUB_SHA:-latest}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  jupyter:
+    container_name: collatz-jupyter-uat
+    ports:
+      - "8890:8888"  # Different port for UAT
+    env_file:
+      - .env.uat
+    environment:
+      - ENVIRONMENT=uat
+      - JUPYTER_ENABLE_LAB=yes
+    labels:
+      - "environment=uat"
+
+  database:
+    container_name: collatz-db-uat
+    ports:
+      - "5434:5432"  # Different port for UAT
+    environment:
+      - POSTGRES_DB=collatz_db_uat
+      - POSTGRES_USER=postgresql
+      - POSTGRES_PASSWORD=uat_database_password_here
+    volumes:
+      - uat_postgres_data:/var/lib/postgresql/data
+    labels:
+      - "environment=uat"
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+
+  # Load testing service for UAT
+  load-test:
+    image: grafana/k6:latest
+    container_name: collatz-load-test-uat
+    volumes:
+      - ./tests/load:/scripts
+    environment:
+      - TARGET_URL=http://app:8080
+    profiles:
+      - load-testing
+    depends_on:
+      - app
+    labels:
+      - "environment=uat"
+      - "service=load-testing"
+
+volumes:
+  uat_postgres_data:
+    driver: local
+    labels:
+      - "environment=uat"
+
+networks:
+  default:
+    name: collatz-uat-network
+    labels:
+      - "environment=uat"

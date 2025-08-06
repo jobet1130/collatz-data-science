@@ -1,0 +1,156 @@
+version: '3.8'
+
+# Sandbox Environment Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.sandbox.yml up
+
+services:
+  app:
+    container_name: collatz-app-sandbox
+    ports:
+      - "8083:8080"  # Different port for Sandbox
+    env_file:
+      - .env.sandbox
+    environment:
+      - ENVIRONMENT=sandbox
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - EXPERIMENTAL_FEATURES=true
+      - AUTO_RELOAD=true
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks
+      - ./reports:/app/reports
+      - ./src:/app/src:rw  # Read-write for hot reload
+      - ./dashboard:/app/dashboard:rw
+      - ./tests:/app/tests:rw
+    labels:
+      - "environment=sandbox"
+      - "version=sandbox-${GITHUB_SHA:-latest}"
+    restart: "no"  # Don't auto-restart in sandbox
+    command: >
+      sh -c "pip install -e . &&
+             python -m pytest --version &&
+             python -c 'import sys; print(f\"Python {sys.version}\")' &&
+             python -m flask run --host=0.0.0.0 --port=8080 --debug"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+  jupyter:
+    container_name: collatz-jupyter-sandbox
+    ports:
+      - "8891:8888"  # Different port for Sandbox
+    env_file:
+      - .env.sandbox
+    environment:
+      - ENVIRONMENT=sandbox
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=sandbox_token
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks:rw
+      - ./reports:/app/reports:rw
+      - ./src:/app/src:rw
+      - ./experiments:/app/experiments:rw  # Additional experiments folder
+    labels:
+      - "environment=sandbox"
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token='sandbox_token'
+      --NotebookApp.password=''
+      --ServerApp.allow_origin='*'
+      --ServerApp.disable_check_xsrf=True
+
+  database:
+    container_name: collatz-db-sandbox
+    ports:
+      - "5435:5432"  # Different port for Sandbox
+    environment:
+      - POSTGRES_DB=collatz_db_sandbox
+      - POSTGRES_USER=postgresql
+      - POSTGRES_PASSWORD=sandbox_database_password_here
+      - POSTGRES_INITDB_ARGS="--auth-host=trust"
+    volumes:
+      - sandbox_postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    labels:
+      - "environment=sandbox"
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_duration=on
+      -c log_min_duration_statement=0
+      -c max_connections=50
+
+  # Redis for caching experiments
+  redis:
+    image: redis:7-alpine
+    container_name: collatz-redis-sandbox
+    ports:
+      - "6379:6379"
+    volumes:
+      - sandbox_redis_data:/data
+    labels:
+      - "environment=sandbox"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # Development tools container
+  dev-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: collatz-dev-tools-sandbox
+    volumes:
+      - ./:/app:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ENVIRONMENT=sandbox
+    working_dir: /app
+    profiles:
+      - dev-tools
+    labels:
+      - "environment=sandbox"
+      - "service=dev-tools"
+    command: tail -f /dev/null  # Keep container running
+
+  # Mock API server for testing
+  mock-api:
+    image: mockserver/mockserver:latest
+    container_name: collatz-mock-api-sandbox
+    ports:
+      - "1080:1080"
+    environment:
+      - MOCKSERVER_LOG_LEVEL=INFO
+    profiles:
+      - mock-services
+    labels:
+      - "environment=sandbox"
+      - "service=mock-api"
+
+volumes:
+  sandbox_postgres_data:
+    driver: local
+    labels:
+      - "environment=sandbox"
+  sandbox_redis_data:
+    driver: local
+    labels:
+      - "environment=sandbox"
+
+networks:
+  default:
+    name: collatz-sandbox-network
+    labels:
+      - "environment=sandbox"
