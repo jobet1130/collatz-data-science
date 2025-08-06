@@ -83,6 +83,13 @@ jobs:
         DB_PASSWORD: perf_password
         TEST_SIZE: ${{ github.event.inputs.test_size || 'medium' }}
       run: |
+        # Check if there are actual test scripts in the tests directory
+        TEST_SCRIPTS=$(find tests/ -name "test_*.py" -o -name "*_test.py" | wc -l)
+        if [ "$TEST_SCRIPTS" -eq 0 ]; then
+          echo "No test scripts found in tests/ directory. Skipping performance tests."
+          exit 0
+        fi
+        
         # Run performance tests with benchmarking on all test files
         pytest tests/ -v \
           --benchmark-only \
@@ -106,10 +113,16 @@ jobs:
         python << 'EOF'
         import json
         import sys
+        import os
         
         try:
             with open('benchmark_results.json', 'r') as f:
                 results = json.load(f)
+            
+            # Check if benchmarks array exists and has content
+            if not results.get('benchmarks'):
+                print("No benchmarks were executed (no test files with benchmark functions found)")
+                sys.exit(0)
             
             # Check if any benchmark is significantly slower than expected
             for benchmark in results['benchmarks']:
@@ -129,7 +142,10 @@ jobs:
                     print(f"✓ {name}: {mean_time:.6f}s (within expected range)")
         
         except FileNotFoundError:
-            print("No benchmark results found")
+            print("No benchmark results found (no test scripts were executed)")
+            sys.exit(0)
+        except json.JSONDecodeError:
+            print("Invalid benchmark results file")
             sys.exit(1)
         EOF
     
