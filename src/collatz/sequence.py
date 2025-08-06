@@ -1,6 +1,6 @@
 """Collatz sequence generation and analysis functions"""
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 def collatz_sequence(n: int) -> List[int]:
