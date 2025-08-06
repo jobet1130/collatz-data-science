@@ -245,7 +245,7 @@ jobs:
           --benchmark-columns=min,max,mean,stddev,rounds,iterations
     
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: benchmark-results
@@ -368,7 +368,7 @@ jobs:
         python memory_profile_test.py > memory_profile_output.txt
     
     - name: Upload memory profile results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: memory-profile-results
         path: memory_profile_output.txt
