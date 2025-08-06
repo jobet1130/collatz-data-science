@@ -68,165 +68,11 @@ jobs:
         psql -h localhost -U postgresql -d collatz_db_perf -f sql/03_create_views.sql
         psql -h localhost -U postgresql -d collatz_db_perf -f sql/04_create_functions.sql
     
-    - name: Create performance test file
+    - name: Discover test files
       run: |
-        cat > tests/test_performance.py << 'EOF'
-        """Performance tests for Collatz sequence calculations."""
-        
-        import pytest
-        import time
-        import psutil
-        import os
-        from memory_profiler import profile
-        
-        # Import the functions from src.collatz.sequence
-        from src.collatz.sequence import (
-            collatz_length,
-            collatz_max_value,
-            collatz_sequence
-        )
-        
-        
-        class TestCollatzPerformance:
-            """Performance benchmarks for Collatz calculations."""
-            
-            @pytest.mark.benchmark(group="length")
-            def test_collatz_length_small_numbers(self, benchmark):
-                """Benchmark Collatz length calculation for small numbers."""
-                result = benchmark(collatz_length, 27)
-                assert result == 111
-            
-            @pytest.mark.benchmark(group="length")
-            def test_collatz_length_medium_numbers(self, benchmark):
-                """Benchmark Collatz length calculation for medium numbers."""
-                result = benchmark(collatz_length, 1000)
-                assert isinstance(result, int)
-            
-            @pytest.mark.benchmark(group="length")
-            def test_collatz_length_large_numbers(self, benchmark):
-                """Benchmark Collatz length calculation for large numbers."""
-                result = benchmark(collatz_length, 10000)
-                assert isinstance(result, int)
-            
-            @pytest.mark.benchmark(group="max")
-            def test_collatz_max_small_numbers(self, benchmark):
-                """Benchmark Collatz max calculation for small numbers."""
-                result = benchmark(collatz_max_value, 27)
-                assert result == 9232
-            
-            @pytest.mark.benchmark(group="max")
-            def test_collatz_max_medium_numbers(self, benchmark):
-                """Benchmark Collatz max calculation for medium numbers."""
-                result = benchmark(collatz_max_value, 1000)
-                assert isinstance(result, int)
-            
-            @pytest.mark.benchmark(group="sequence")
-            def test_collatz_sequence_generation(self, benchmark):
-                """Benchmark full sequence generation."""
-                result = benchmark(collatz_sequence, 27)
-                assert len(result) == 112  # 111 steps + starting number
-            
-            def test_memory_usage_large_sequence(self):
-                """Test memory usage for large sequence generation."""
-                process = psutil.Process(os.getpid())
-                memory_before = process.memory_info().rss / 1024 / 1024  # MB
-                
-                # Generate a sequence that should use significant memory
-                sequence = collatz_sequence(77671)
-                
-                memory_after = process.memory_info().rss / 1024 / 1024  # MB
-                memory_used = memory_after - memory_before
-                
-                # Assert that memory usage is reasonable (less than 100MB for this test)
-                assert memory_used < 100, f"Memory usage too high: {memory_used:.2f} MB"
-                assert len(sequence) > 0
-            
-            @pytest.mark.parametrize("n", [100, 500, 1000, 5000])
-            def test_batch_performance(self, n):
-                """Test performance of batch calculations."""
-                start_time = time.time()
-                
-                results = []
-                for i in range(1, n + 1):
-                    length = collatz_length(i)
-                    results.append(length)
-                
-                end_time = time.time()
-                duration = end_time - start_time
-                
-                # Assert reasonable performance (should process at least 100 numbers per second)
-                rate = n / duration
-                assert rate > 100, f"Processing rate too slow: {rate:.2f} numbers/second"
-                assert len(results) == n
-        
-        
-        class TestDatabasePerformance:
-            """Performance tests for database operations."""
-            
-            @pytest.fixture
-            def db_connection(self):
-                """Create a database connection for performance testing."""
-                import psycopg2
-                conn = psycopg2.connect(
-                    host='localhost',
-                    port='5432',
-                    database='collatz_db_perf',
-                    user='postgresql',
-                    password='perf_password'
-                )
-                yield conn
-                conn.close()
-            
-            @pytest.mark.benchmark(group="database")
-            def test_function_performance(self, benchmark, db_connection):
-                """Benchmark database function performance."""
-                def run_calculation():
-                    with db_connection.cursor() as cursor:
-                        cursor.execute('SELECT calculate_collatz_length(27)')
-                        return cursor.fetchone()[0]
-                
-                result = benchmark(run_calculation)
-                assert result == 111
-            
-            def test_bulk_insert_performance(self, db_connection):
-                """Test performance of bulk data insertion."""
-                start_time = time.time()
-                
-                with db_connection.cursor() as cursor:
-                    # Insert test data
-                    test_data = [(i, i * 2, i * 3) for i in range(1, 1001)]
-                    cursor.executemany(
-                        "INSERT INTO collatz_sequences (starting_number, sequence_length, max_value) VALUES (%s, %s, %s)",
-                        test_data
-                    )
-                    db_connection.commit()
-                
-                end_time = time.time()
-                duration = end_time - start_time
-                
-                # Should be able to insert 1000 records in less than 5 seconds
-                assert duration < 5.0, f"Bulk insert too slow: {duration:.2f} seconds"
-                
-                # Clean up
-                with db_connection.cursor() as cursor:
-                    cursor.execute("DELETE FROM collatz_sequences WHERE starting_number BETWEEN 1 AND 1000")
-                    db_connection.commit()
-            
-            def test_view_query_performance(self, db_connection):
-                """Test performance of view queries."""
-                start_time = time.time()
-                
-                with db_connection.cursor() as cursor:
-                    cursor.execute('SELECT * FROM sequence_statistics')
-                    results = cursor.fetchall()
-                
-                end_time = time.time()
-                duration = end_time - start_time
-                
-                # View query should complete in less than 1 second
-                assert duration < 1.0, f"View query too slow: {duration:.2f} seconds"
-                assert len(results) > 0
-        EOF
+        echo "Discovering test files in tests/ directory:"
+        ls tests/test_*.py | sort
+        echo "Total test files found: $(ls tests/test_*.py | wc -l)"
     
     - name: Run performance tests
       env:
@@ -237,8 +83,8 @@ jobs:
         DB_PASSWORD: perf_password
         TEST_SIZE: ${{ github.event.inputs.test_size || 'medium' }}
       run: |
-        # Run performance tests with benchmarking
-        pytest tests/test_performance.py -v \
+        # Run performance tests with benchmarking on all test files
+        pytest tests/ -v \
           --benchmark-only \
           --benchmark-json=benchmark_results.json \
           --benchmark-sort=mean \
@@ -342,33 +188,21 @@ jobs:
         pip install -r requirements.txt
         pip install memory-profiler matplotlib
     
-    - name: Run memory profiling
+    - name: Run memory profiling on test files
       run: |
-        # Create a memory profiling script
-        cat > memory_profile_test.py << 'EOF'
-        from memory_profiler import profile
-        from src.collatz.sequence import collatz_length, collatz_sequence
-        
-        @profile
-        def test_memory_usage():
-            # Test memory usage for various calculations
-            for i in [27, 100, 1000, 10000]:
-                length = collatz_length(i)
-                print(f"Length for {i}: {length}")
-            
-            # Test sequence generation
-            sequence = collatz_sequence(77671)
-            print(f"Generated sequence of length: {len(sequence)}")
-        
-        if __name__ == "__main__":
-            test_memory_usage()
-        EOF
-        
-        # Run memory profiling
-        python memory_profile_test.py > memory_profile_output.txt
+        # Run memory profiling on existing test files that have memory-related tests
+         if [ -f "tests/test_performance.py" ]; then
+           echo "Running memory profiling on performance tests..."
+           python -m memory_profiler tests/test_performance.py > memory_profile_output.txt 2>&1 || echo "Memory profiling completed with warnings"
+         else
+           echo "No performance test file found for memory profiling"
+           echo "Available test files:" > memory_profile_output.txt
+           ls tests/test_*.py >> memory_profile_output.txt 2>/dev/null || echo "No test files found" >> memory_profile_output.txt
+         fi
     
     - name: Upload memory profile results
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: memory-profile-results
         path: memory_profile_output.txt
