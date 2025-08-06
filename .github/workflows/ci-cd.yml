@@ -135,6 +135,13 @@ jobs:
         DB_USER: ${{ env.POSTGRES_USER }}
         DB_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
       run: |
+        # Check if there are actual test scripts in the tests directory
+        TEST_SCRIPTS=$(find tests/ -name "test_*.py" -o -name "*_test.py" | wc -l)
+        if [ "$TEST_SCRIPTS" -eq 0 ]; then
+          echo "No test scripts found in tests/ directory. Skipping pytest."
+          exit 0
+        fi
+        
         COV_ARG=""
         if [ "$SRC_EXIST" = "true" ]; then COV_ARG="--cov=src"; fi
         pytest tests/ -v $COV_ARG --cov-report=xml --cov-report=html

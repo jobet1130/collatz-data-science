@@ -83,6 +83,13 @@ jobs:
         DB_PASSWORD: perf_password
         TEST_SIZE: ${{ github.event.inputs.test_size || 'medium' }}
       run: |
+        # Check if there are actual test scripts in the tests directory
+        TEST_SCRIPTS=$(find tests/ -name "test_*.py" -o -name "*_test.py" | wc -l)
+        if [ "$TEST_SCRIPTS" -eq 0 ]; then
+          echo "No test scripts found in tests/ directory. Skipping performance tests."
+          exit 0
+        fi
+        
         # Run performance tests with benchmarking on all test files
         pytest tests/ -v \
           --benchmark-only \
