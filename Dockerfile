@@ -24,11 +24,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY src/ ./src/
+# Copy project files (handle potentially empty directories)
+RUN mkdir -p src tests notebooks dashboard
+
+# Copy individual files and directories that exist
+COPY src/__init__.py ./src/__init__.py
 COPY dashboard/ ./dashboard/
-COPY tests/ ./tests/
-COPY notebooks/ ./notebooks/
+COPY tests/__init__.py ./tests/__init__.py
+COPY notebooks/.gitkeep ./notebooks/.gitkeep
 
 # Create directories for data and outputs
 RUN mkdir -p data/raw data/processed reports
