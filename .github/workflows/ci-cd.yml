@@ -2,11 +2,25 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, qa, uat, releaseTest, release ]
+    branches: 
+      - main
+      - develop
+      - qa
+      - uat
+      - releaseTest
+      - release
+      # Support for issue-based branches
+      - 'issue-*'
+      - 'feature/*'
+      - 'bugfix/*'
+      - 'hotfix/*'
+      - 'fix/*'
   pull_request:
     branches: [ main, develop, qa, uat, releaseTest, release ]
   release:
     types: [ published ]
+  # Manual trigger for any branch
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
