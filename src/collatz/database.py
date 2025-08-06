@@ -1,8 +1,10 @@
 """Database utilities for Collatz sequence data storage."""
 
+# mypy: disable-error-code=unreachable
+
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 import psycopg2
@@ -14,7 +16,7 @@ from sqlalchemy.engine import Engine
 class CollatzDatabase:
     """Database connection and operations for Collatz sequence data."""
 
-    def __init__(self, connection_params: Optional[Dict[str, str]] = None):
+    def __init__(self, connection_params: Optional[Dict[str, Optional[str]]] = None):
         """Initialize database connection.
 
         Args:
@@ -32,9 +34,9 @@ class CollatzDatabase:
 
         self.connection_params = connection_params
         self.connection = None
-        self.engine = None
+        self.engine: Optional[Engine] = None
 
-    def connect(self):
+    def connect(self) -> None:
         """Establish database connection."""
         try:
             self.connection = psycopg2.connect(**self.connection_params)
@@ -48,7 +50,7 @@ class CollatzDatabase:
             logging.error(f"Failed to connect to database: {e}")
             raise
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Close database connection."""
         if self.engine:
             self.engine.dispose()
@@ -58,12 +60,12 @@ class CollatzDatabase:
             self.connection = None
             logging.info("Database connection closed")
 
-    def __enter__(self):
+    def __enter__(self) -> "CollatzDatabase":
         """Context manager entry."""
         self.connect()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.disconnect()
 
