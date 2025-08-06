@@ -32,7 +32,6 @@ COPY src/__init__.py ./src/__init__.py
 COPY src/collatz/ ./src/collatz/
 COPY dashboard/ ./dashboard/
 COPY tests/__init__.py ./tests/__init__.py
-COPY tests/.benchmarks/ ./tests/.benchmarks/
 COPY notebooks/.gitkeep ./notebooks/.gitkeep
 
 # Create directories for data and outputs
