@@ -29,7 +29,6 @@ RUN mkdir -p src tests notebooks dashboard
 
 # Copy individual files and directories that exist
 COPY src/__init__.py ./src/__init__.py
-COPY src/collatz/ ./src/collatz/
 COPY dashboard/ ./dashboard/
 COPY tests/__init__.py ./tests/__init__.py
 COPY notebooks/.gitkeep ./notebooks/.gitkeep
