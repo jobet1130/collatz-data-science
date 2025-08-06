@@ -1,0 +1,559 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'notebooks/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'notebooks/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install sphinx sphinx-rtd-theme myst-parser sphinx-autodoc-typehints
+        pip install nbsphinx pandoc jupyter-book
+    
+    - name: Create docs directory structure
+      run: |
+        mkdir -p docs/source
+        mkdir -p docs/build
+        mkdir -p docs/source/_static
+        mkdir -p docs/source/_templates
+    
+    - name: Generate Sphinx configuration
+      run: |
+        cat > docs/source/conf.py << 'EOF'
+        # Configuration file for the Sphinx documentation builder.
+        
+        import os
+        import sys
+        sys.path.insert(0, os.path.abspath('../../src'))
+        
+        # -- Project information -----------------------------------------------------
+        project = 'Collatz Data Science'
+        copyright = '2024, Collatz Research Team'
+        author = 'Collatz Research Team'
+        release = '0.1.0'
+        
+        # -- General configuration ---------------------------------------------------
+        extensions = [
+            'sphinx.ext.autodoc',
+            'sphinx.ext.viewcode',
+            'sphinx.ext.napoleon',
+            'sphinx.ext.intersphinx',
+            'sphinx.ext.mathjax',
+            'myst_parser',
+            'nbsphinx',
+            'sphinx_autodoc_typehints',
+        ]
+        
+        templates_path = ['_templates']
+        exclude_patterns = []
+        
+        # -- Options for HTML output -------------------------------------------------
+        html_theme = 'sphinx_rtd_theme'
+        html_static_path = ['_static']
+        html_title = 'Collatz Data Science Documentation'
+        
+        # -- Extension configuration -------------------------------------------------
+        autodoc_default_options = {
+            'members': True,
+            'member-order': 'bysource',
+            'special-members': '__init__',
+            'undoc-members': True,
+            'exclude-members': '__weakref__'
+        }
+        
+        napoleon_google_docstring = True
+        napoleon_numpy_docstring = True
+        napoleon_include_init_with_doc = False
+        napoleon_include_private_with_doc = False
+        
+        # MyST configuration
+        myst_enable_extensions = [
+            "dollarmath",
+            "amsmath",
+            "deflist",
+            "html_admonition",
+            "html_image",
+            "colon_fence",
+            "smartquotes",
+            "replacements",
+        ]
+        
+        # Notebook execution
+        nbsphinx_execute = 'never'  # Don't execute notebooks during build
+        nbsphinx_allow_errors = True
+        
+        # Intersphinx mapping
+        intersphinx_mapping = {
+            'python': ('https://docs.python.org/3/', None),
+            'numpy': ('https://numpy.org/doc/stable/', None),
+            'pandas': ('https://pandas.pydata.org/docs/', None),
+            'matplotlib': ('https://matplotlib.org/stable/', None),
+        }
+        EOF
+    
+    - name: Generate main documentation files
+      run: |
+        # Create index.rst
+        cat > docs/source/index.rst << 'EOF'
+        Collatz Data Science Documentation
+        ===================================
+        
+        Welcome to the Collatz Data Science project documentation. This project provides
+        comprehensive tools and analysis for studying Collatz sequences (also known as
+        the 3n+1 problem).
+        
+        .. toctree::
+           :maxdepth: 2
+           :caption: Contents:
+        
+           overview
+           installation
+           database
+           api
+           notebooks
+           performance
+           contributing
+        
+        Indices and tables
+        ==================
+        
+        * :ref:`genindex`
+        * :ref:`modindex`
+        * :ref:`search`
+        EOF
+        
+        # Create overview.md
+        cat > docs/source/overview.md << 'EOF'
+        # Project Overview
+        
+        ## What is the Collatz Conjecture?
+        
+        The Collatz conjecture is one of the most famous unsolved problems in mathematics.
+        It concerns sequences defined as follows:
+        
+        - Start with any positive integer n
+        - If n is even, divide it by 2
+        - If n is odd, multiply by 3 and add 1
+        - Repeat until you reach 1
+        
+        The conjecture states that this sequence will always eventually reach 1,
+        regardless of the starting number.
+        
+        ## Project Goals
+        
+        This project aims to:
+        
+        1. **Analyze** large-scale Collatz sequence data
+        2. **Visualize** patterns and trends in sequence behavior
+        3. **Store** and **query** sequence data efficiently
+        4. **Provide** tools for researchers and enthusiasts
+        5. **Scale** computations using modern data science techniques
+        
+        ## Key Features
+        
+        - **PostgreSQL Database**: Optimized schema for storing sequence data
+        - **Python Analysis Tools**: Efficient calculation and analysis functions
+        - **Interactive Dashboards**: Web-based visualization and exploration
+        - **Jupyter Notebooks**: Research and experimentation environment
+        - **Performance Optimization**: Scalable algorithms and database queries
+        - **CI/CD Pipeline**: Automated testing and deployment
+        EOF
+        
+        # Create installation.md
+        cat > docs/source/installation.md << 'EOF'
+        # Installation Guide
+        
+        ## Prerequisites
+        
+        - Python 3.9 or higher
+        - Docker and Docker Compose
+        - Git
+        
+        ## Quick Start
+        
+        1. **Clone the repository:**
+           ```bash
+           git clone <repository-url>
+           cd collatz-data-science
+           ```
+        
+        2. **Set up the environment:**
+           ```bash
+           cp .env.example .env
+           # Edit .env with your configuration
+           ```
+        
+        3. **Start the database:**
+           ```bash
+           docker-compose up -d database
+           ```
+        
+        4. **Install Python dependencies:**
+           ```bash
+           pip install -r requirements.txt
+           ```
+        
+        5. **Run tests:**
+           ```bash
+           pytest
+           ```
+        
+        ## Development Setup
+        
+        For development, install additional tools:
+        
+        ```bash
+        pip install -e ".[dev]"
+        pre-commit install
+        ```
+        
+        ## Docker Setup
+        
+        The project includes Docker configurations for easy deployment:
+        
+        ```bash
+        docker-compose up -d
+        ```
+        
+        This will start:
+        - PostgreSQL database
+        - Jupyter notebook server
+        - Dashboard application (if configured)
+        EOF
+        
+        # Create database.md
+        cat > docs/source/database.md << 'EOF'
+        # Database Schema
+        
+        ## Overview
+        
+        The project uses PostgreSQL to store and analyze Collatz sequence data.
+        The schema is optimized for both storage efficiency and query performance.
+        
+        ## Tables
+        
+        ### collatz_sequences
+        Main table storing sequence metadata:
+        - `starting_number`: The initial number
+        - `sequence_length`: Number of steps to reach 1
+        - `max_value`: Maximum value reached in the sequence
+        - `total_steps`: Total computational steps
+        
+        ### sequence_steps
+        Detailed step-by-step sequence data:
+        - `sequence_id`: Reference to collatz_sequences
+        - `step_number`: Position in sequence
+        - `value`: Value at this step
+        
+        ### analysis_results
+        Stores analysis and research results:
+        - `analysis_type`: Type of analysis performed
+        - `parameters`: Analysis parameters (JSONB)
+        - `results`: Analysis results (JSONB)
+        
+        ## Views
+        
+        The database includes several optimized views:
+        - `sequence_statistics`: Aggregate statistics
+        - `sequence_length_distribution`: Length distribution analysis
+        - `top_longest_sequences`: Sequences with highest step counts
+        - `performance_summary`: Database performance metrics
+        
+        ## Functions
+        
+        Custom PostgreSQL functions:
+        - `calculate_collatz_length(n)`: Calculate sequence length
+        - `calculate_collatz_max(n)`: Find maximum value in sequence
+        - `get_range_statistics(start, end)`: Bulk statistics calculation
+        EOF
+        
+        # Create api.rst
+        cat > docs/source/api.rst << 'EOF'
+        API Reference
+        =============
+        
+        This section contains the API documentation for all modules in the project.
+        
+        .. automodule:: src
+           :members:
+           :undoc-members:
+           :show-inheritance:
+        EOF
+        
+        # Create notebooks.md
+        cat > docs/source/notebooks.md << 'EOF'
+        # Jupyter Notebooks
+        
+        This section contains interactive Jupyter notebooks for analysis and research.
+        
+        ## Available Notebooks
+        
+        The notebooks are organized by topic and complexity:
+        
+        ### Getting Started
+        - **01_introduction.ipynb**: Basic Collatz sequence exploration
+        - **02_database_connection.ipynb**: Connecting to and querying the database
+        
+        ### Analysis
+        - **03_sequence_analysis.ipynb**: Statistical analysis of sequences
+        - **04_visualization.ipynb**: Creating plots and visualizations
+        - **05_pattern_detection.ipynb**: Looking for patterns in sequence behavior
+        
+        ### Advanced Topics
+        - **06_performance_optimization.ipynb**: Optimizing calculations
+        - **07_large_scale_analysis.ipynb**: Working with large datasets
+        - **08_machine_learning.ipynb**: ML approaches to sequence analysis
+        
+        ## Running Notebooks
+        
+        To run the notebooks locally:
+        
+        ```bash
+        jupyter notebook notebooks/
+        ```
+        
+        Or use JupyterLab:
+        
+        ```bash
+        jupyter lab
+        ```
+        EOF
+        
+        # Create performance.md
+        cat > docs/source/performance.md << 'EOF'
+        # Performance Guide
+        
+        ## Optimization Strategies
+        
+        ### Database Performance
+        
+        1. **Indexing**: The database includes optimized indexes for common queries
+        2. **Partitioning**: Large tables can be partitioned by number ranges
+        3. **Connection Pooling**: Use connection pooling for high-throughput applications
+        
+        ### Calculation Performance
+        
+        1. **Vectorization**: Use NumPy for batch calculations
+        2. **Caching**: Cache frequently accessed sequences
+        3. **Parallel Processing**: Use multiprocessing for independent calculations
+        
+        ## Benchmarks
+        
+        Performance benchmarks are automatically run in CI/CD:
+        
+        - **Small numbers (< 1000)**: < 1ms per calculation
+        - **Medium numbers (< 10000)**: < 10ms per calculation
+        - **Large numbers (< 100000)**: < 100ms per calculation
+        
+        ## Monitoring
+        
+        The project includes performance monitoring:
+        
+        - Database query performance metrics
+        - Memory usage tracking
+        - Calculation throughput monitoring
+        EOF
+        
+        # Create contributing.md
+        cat > docs/source/contributing.md << 'EOF'
+        # Contributing Guide
+        
+        ## Getting Started
+        
+        1. Fork the repository
+        2. Create a feature branch
+        3. Make your changes
+        4. Run tests and linting
+        5. Submit a pull request
+        
+        ## Development Workflow
+        
+        ### Code Quality
+        
+        We use several tools to maintain code quality:
+        
+        - **Black**: Code formatting
+        - **isort**: Import sorting
+        - **flake8**: Linting
+        - **mypy**: Type checking
+        - **pytest**: Testing
+        
+        ### Pre-commit Hooks
+        
+        Install pre-commit hooks to automatically check code quality:
+        
+        ```bash
+        pre-commit install
+        ```
+        
+        ### Testing
+        
+        Run the full test suite:
+        
+        ```bash
+        pytest
+        ```
+        
+        Run specific test categories:
+        
+        ```bash
+        pytest -m "unit"          # Unit tests only
+        pytest -m "integration"   # Integration tests only
+        pytest -m "not slow"      # Skip slow tests
+        ```
+        
+        ## Documentation
+        
+        Documentation is built using Sphinx. To build locally:
+        
+        ```bash
+        cd docs
+        make html
+        ```
+        
+        ## Release Process
+        
+        1. Update version numbers
+        2. Update CHANGELOG.md
+        3. Create a release tag
+        4. GitHub Actions will handle the rest
+        EOF
+    
+    - name: Build documentation
+      run: |
+        cd docs
+        sphinx-build -b html source build/html
+    
+    - name: Setup Pages
+      if: github.ref == 'refs/heads/main'
+      uses: actions/configure-pages@v3
+    
+    - name: Upload artifact
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: docs/build/html
+    
+    - name: Upload documentation artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/build/html
+        retention-days: 30
+
+  deploy-docs:
+    name: Deploy Documentation
+    if: github.ref == 'refs/heads/main'
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
+
+  notebook-docs:
+    name: Process Notebooks for Documentation
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: collatz_db_docs
+          POSTGRES_USER: postgresql
+          POSTGRES_PASSWORD: docs_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install jupyter nbconvert
+    
+    - name: Set up documentation database
+      env:
+        PGPASSWORD: docs_password
+      run: |
+        psql -h localhost -U postgresql -d collatz_db_docs -f sql/01_create_tables.sql
+        psql -h localhost -U postgresql -d collatz_db_docs -f sql/02_create_indexes.sql
+        psql -h localhost -U postgresql -d collatz_db_docs -f sql/03_create_views.sql
+        psql -h localhost -U postgresql -d collatz_db_docs -f sql/04_create_functions.sql
+        psql -h localhost -U postgresql -d collatz_db_docs -f sql/05_insert_sample_data.sql
+    
+    - name: Convert notebooks to HTML
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: collatz_db_docs
+        DB_USER: postgresql
+        DB_PASSWORD: docs_password
+        DB_URL: postgresql://postgresql:docs_password@localhost:5432/collatz_db_docs
+      run: |
+        mkdir -p notebook_html
+        find notebooks/ -name "*.ipynb" -exec jupyter nbconvert --to html --output-dir=notebook_html {} \;
+    
+    - name: Upload notebook HTML
+      uses: actions/upload-artifact@v3
+      with:
+        name: notebook-html
+        path: notebook_html/
+        retention-days: 30
