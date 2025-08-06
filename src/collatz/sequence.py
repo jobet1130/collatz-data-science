@@ -1,4 +1,5 @@
 """Collatz sequence generation and analysis functions"""
+
 from typing import Dict, List, Any
 
 
