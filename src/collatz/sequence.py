@@ -1,7 +1,8 @@
 """Collatz sequence generation and analysis functions"""
+from typing import Dict, List, Any
 
 
-def collatz_sequence(n):
+def collatz_sequence(n: int) -> List[int]:
     """
     Generate the complete Collatz sequence for a given starting number.
 
@@ -31,7 +32,7 @@ def collatz_sequence(n):
     return sequence
 
 
-def collatz_length(n):
+def collatz_length(n: int) -> int:
     """
     Calculate the length of the Collatz sequence for a given starting number.
 
@@ -61,7 +62,7 @@ def collatz_length(n):
     return length
 
 
-def collatz_max_value(n):
+def collatz_max_value(n: int) -> int:
     """
     Find the maximum value reached in the Collatz sequence for a given starting number.
 
@@ -92,7 +93,7 @@ def collatz_max_value(n):
     return max_value
 
 
-def collatz_steps_to_max(n):
+def collatz_steps_to_max(n: int) -> int:
     """
     Find the number of steps to reach the maximum value in the Collatz sequence.
 
@@ -127,7 +128,7 @@ def collatz_steps_to_max(n):
     return max_steps
 
 
-def is_power_of_two(n):
+def is_power_of_two(n: int) -> bool:
     """
     Check if a number is a power of 2.
 
@@ -140,7 +141,7 @@ def is_power_of_two(n):
     return n > 0 and (n & (n - 1)) == 0
 
 
-def collatz_analysis(n):
+def collatz_analysis(n: int) -> Dict[str, Any]:
     """
     Perform complete analysis of a Collatz sequence.
 
