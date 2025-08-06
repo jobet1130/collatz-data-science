@@ -10,6 +10,6 @@ from .core import CollatzSequence, analyze_sequence, generate_sequence
 
 __all__ = [
     "CollatzSequence",
-    "analyze_sequence", 
+    "analyze_sequence",
     "generate_sequence",
 ]
