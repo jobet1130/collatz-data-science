@@ -260,6 +260,10 @@ docker pull ghcr.io/jobet95/collatz-data-science:latest
 
 For production deployment, see [DOCKER_HUB_SETUP.md](DOCKER_HUB_SETUP.md) for detailed configuration instructions.
 
+### Troubleshooting
+
+**GitHub Container Registry Permission Issues**: If you encounter "installation not allowed to Create organization package" errors, see [GITHUB_CONTAINER_REGISTRY_SETUP.md](GITHUB_CONTAINER_REGISTRY_SETUP.md) for solutions.
+
 ## 📈 Performance
 
 The project includes comprehensive performance optimization:
