@@ -2,11 +2,25 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, qa, uat, releaseTest, release ]
+    branches: 
+      - main
+      - develop
+      - qa
+      - uat
+      - releaseTest
+      - release
+      # Support for issue-based branches
+      - 'issue-*'
+      - 'feature/*'
+      - 'bugfix/*'
+      - 'hotfix/*'
+      - 'fix/*'
   pull_request:
     branches: [ main, develop, qa, uat, releaseTest, release ]
   release:
     types: [ published ]
+  # Manual trigger for any branch
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -218,6 +232,7 @@ jobs:
         registry: ${{ env.DOCKERHUB_REGISTRY }}
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
     
     - name: Extract metadata for GitHub Registry
       id: meta-github
@@ -248,6 +263,7 @@ jobs:
     
     - name: Build and push Docker image to Docker Hub
       uses: docker/build-push-action@v5
+      continue-on-error: true
       with:
         context: .
         platforms: linux/amd64,linux/arm64
