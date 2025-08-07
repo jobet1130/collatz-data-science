@@ -38,6 +38,7 @@ services:
       - "environment=qa"
 
   database:
+    image: postgres:15-alpine
     container_name: collatz-db-qa
     ports:
       - "5433:5432"  # Different port for QA
@@ -47,6 +48,8 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - qa_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env.qa
     labels:
       - "environment=qa"
 

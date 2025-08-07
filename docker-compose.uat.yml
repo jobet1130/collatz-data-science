@@ -7,7 +7,7 @@ services:
   app:
     container_name: collatz-app-uat
     ports:
-      - "8082:8080"  # Different port for UAT
+      - "8083:8080"  # Different port for UAT
     env_file:
       - .env.uat
     environment:
@@ -35,8 +35,9 @@ services:
 
   jupyter:
     container_name: collatz-jupyter-uat
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='${JUPYTER_TOKEN}' --NotebookApp.password='${JUPYTER_PASSWORD}'
     ports:
-      - "8891:8888"  # Different port for UAT
+      - "8893:8888"  # Different port for UAT
     env_file:
       - .env.uat
     environment:
