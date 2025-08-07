@@ -24,14 +24,21 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copy project configuration files
+COPY pyproject.toml .
+COPY README.md .
+
 # Copy project files (handle potentially empty directories)
 RUN mkdir -p src tests notebooks dashboard
 
 # Copy individual files and directories that exist
-COPY src/__init__.py ./src/__init__.py
+COPY src/ ./src/
 COPY dashboard/ ./dashboard/
-COPY tests/__init__.py ./tests/__init__.py
-COPY notebooks/.gitkeep ./notebooks/.gitkeep
+COPY tests/ ./tests/
+COPY notebooks/ ./notebooks/
+
+# Install the project in editable mode
+RUN pip install -e .
 
 # Create directories for data and outputs
 RUN mkdir -p data/raw data/processed reports
@@ -47,5 +54,5 @@ RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
 USER app
 
-# Default command
-CMD ["python", "-m", "dashboard"]
+# Default command - run the Flask application
+CMD ["python", "-c", "from dashboard.app import main; main()"]
