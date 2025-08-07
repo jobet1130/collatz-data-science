@@ -28,7 +28,7 @@ services:
   jupyter:
     container_name: collatz-jupyter-qa
     ports:
-      - "8889:8888"  # Different port for QA
+      - "8890:8888"  # Different port for QA
     env_file:
       - .env.qa
     environment:
@@ -38,15 +38,18 @@ services:
       - "environment=qa"
 
   database:
+    image: postgres:15-alpine
     container_name: collatz-db-qa
     ports:
       - "5433:5432"  # Different port for QA
     environment:
-      - POSTGRES_DB=collatz_db_qa
-      - POSTGRES_USER=postgresql
-      - POSTGRES_PASSWORD=qa_database_password_here
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - qa_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env.qa
     labels:
       - "environment=qa"
 
