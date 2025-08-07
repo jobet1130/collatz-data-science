@@ -47,7 +47,7 @@ services:
   jupyter:
     container_name: collatz-jupyter-sandbox
     ports:
-      - "8891:8888"  # Different port for Sandbox
+      - "8889:8888"  # Different port for Sandbox
     env_file:
       - .env.sandbox
     environment:
@@ -78,9 +78,9 @@ services:
     ports:
       - "5435:5432"  # Different port for Sandbox
     environment:
-      - POSTGRES_DB=collatz_db_sandbox
-      - POSTGRES_USER=postgresql
-      - POSTGRES_PASSWORD=sandbox_database_password_here
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_INITDB_ARGS="--auth-host=trust"
     volumes:
       - sandbox_postgres_data:/var/lib/postgresql/data

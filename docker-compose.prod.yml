@@ -1,0 +1,73 @@
+version: '3.8'
+
+# Production Environment Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  app:
+    container_name: collatz-app-prod
+    ports:
+      - "8084:8080"  # Different port for Production
+    env_file:
+      - .env.prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=ERROR
+    labels:
+      - "environment=production"
+      - "version=prod-${GITHUB_SHA:-latest}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  jupyter:
+    container_name: collatz-jupyter-prod
+    ports:
+      - "8892:8888"  # Different port for Production
+    env_file:
+      - .env.prod
+    environment:
+      - ENVIRONMENT=production
+      - JUPYTER_ENABLE_LAB=yes
+    labels:
+      - "environment=production"
+
+  database:
+    container_name: collatz-db-prod
+    ports:
+      - "5436:5432"  # Different port for Production
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - prod_postgres_data:/var/lib/postgresql/data
+    labels:
+      - "environment=production"
+
+  redis:
+    container_name: collatz-redis-prod
+    image: redis:7-alpine
+    ports:
+      - "6382:6379"  # Different port for Production
+    volumes:
+      - prod_redis_data:/data
+    labels:
+      - "environment=production"
+    restart: unless-stopped
+
+volumes:
+  prod_postgres_data:
+    driver: local
+  prod_redis_data:
+    driver: local
+
+networks:
+  default:
+    name: collatz-prod-network
+    driver: bridge

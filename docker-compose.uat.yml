@@ -36,7 +36,7 @@ services:
   jupyter:
     container_name: collatz-jupyter-uat
     ports:
-      - "8890:8888"  # Different port for UAT
+      - "8891:8888"  # Different port for UAT
     env_file:
       - .env.uat
     environment:
@@ -50,9 +50,9 @@ services:
     ports:
       - "5434:5432"  # Different port for UAT
     environment:
-      - POSTGRES_DB=collatz_db_uat
-      - POSTGRES_USER=postgresql
-      - POSTGRES_PASSWORD=uat_database_password_here
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - uat_postgres_data:/var/lib/postgresql/data
     labels:

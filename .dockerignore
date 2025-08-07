@@ -49,6 +49,12 @@ MANIFEST
 
 # Virtual environments
 .env
+.env.*
+.env.local
+.env.sandbox
+.env.qa
+.env.uat
+.env.prod
 .venv
 env/
 venv/
